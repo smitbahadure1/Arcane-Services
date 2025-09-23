@@ -78,7 +78,8 @@ const BookingForm: React.FC = () => {
         }
       })
       
-      console.log('Booking created:', newBooking)
+      console.log('✅ Booking saved successfully:', newBooking)
+      console.log('📊 All bookings in storage:', JSON.parse(localStorage.getItem('home_service_bookings') || '[]'))
 
       // Set booking data for confirmation modal
       setBookingData({
