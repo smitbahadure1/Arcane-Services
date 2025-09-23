@@ -55,17 +55,48 @@ const Dashboard: React.FC = () => {
   const fetchData = async () => {
     // Use sample services
     setServices(sampleServices)
-    
-    // Get bookings from localStorage
-    const bookingsData = getBookings()
-    console.log('📊 Admin Dashboard - Found', bookingsData.length, 'bookings')
-    
-    // Add service title to bookings
-    const bookingsWithService = bookingsData.map((booking: any) => ({
-      ...booking,
-      services: booking.service || { title: 'Unknown Service' }
-    }))
-    
+
+    // Get bookings from localStorage with multiple fallback methods
+    let bookingsData = getBookings()
+
+    // If no bookings found, try direct localStorage access
+    if (bookingsData.length === 0) {
+      const rawData = localStorage.getItem('home_service_bookings')
+      if (rawData) {
+        try {
+          bookingsData = JSON.parse(rawData)
+          console.log('📊 Found bookings via direct localStorage access:', bookingsData.length)
+        } catch (e) {
+          console.log('❌ Error parsing localStorage data')
+          bookingsData = []
+        }
+      }
+    }
+
+    // Add service title to bookings - ensure all bookings have service info
+    const bookingsWithService = bookingsData.map((booking: any) => {
+      // Try to find service by service_id first
+      const serviceInfo = sampleServices.find(s => s.id === booking.service_id)
+      if (serviceInfo) {
+        return {
+          ...booking,
+          services: { title: serviceInfo.title }
+        }
+      }
+
+      // Fallback to existing service data
+      if (booking.service && booking.service.title) {
+        return booking
+      }
+
+      // Final fallback
+      return {
+        ...booking,
+        services: { title: 'Unknown Service' }
+      }
+    })
+
+    console.log('✅ Admin dashboard ready with', bookingsWithService.length, 'bookings')
     setBookings(bookingsWithService)
     setCategories(sampleCategories)
 
