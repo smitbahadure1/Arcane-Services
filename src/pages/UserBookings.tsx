@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { format } from 'date-fns'
-import { Calendar, Clock, User, Phone, MapPin, MessageSquare, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { Calendar, Clock, User, Phone, MapPin, MessageSquare, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { getBookingsByUserId, updateBookingStatus } from '../utils/bookingStorage'
 
@@ -12,6 +12,17 @@ const UserBookings: React.FC = () => {
   useEffect(() => {
     if (user) {
       fetchBookings()
+    }
+  }, [user])
+
+  // Auto-refresh bookings every 5 seconds to show real-time updates
+  useEffect(() => {
+    if (user) {
+      const interval = setInterval(() => {
+        fetchBookings()
+      }, 5000) // Refresh every 5 seconds
+
+      return () => clearInterval(interval)
     }
   }, [user])
 
@@ -72,9 +83,18 @@ const UserBookings: React.FC = () => {
   return (
     <div className="min-h-screen bg-primary-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-headline text-primary-900 mb-4">My Bookings</h1>
-          <p className="text-body text-primary-600">Manage your service bookings and track their status</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-headline text-primary-900 mb-4">My Bookings</h1>
+            <p className="text-body text-primary-600">Manage your service bookings and track their status</p>
+          </div>
+          <button
+            onClick={fetchBookings}
+            className="flex items-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span>Refresh</span>
+          </button>
         </div>
 
         {bookings.length === 0 ? (
