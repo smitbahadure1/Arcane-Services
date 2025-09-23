@@ -60,12 +60,6 @@ const BookingForm: React.FC = () => {
     setLoading(true)
 
     try {
-      console.log('🚀 Starting booking save process...')
-      console.log('👤 User:', user)
-      console.log('🛠️ Service:', service)
-      console.log('📅 Date:', selectedDate)
-      console.log('⏰ Time:', selectedTime)
-      
       // Save booking
       const bookingData = {
         user_id: user.uid,
@@ -84,9 +78,8 @@ const BookingForm: React.FC = () => {
         }
       }
       
-      console.log('📋 Booking data to save:', bookingData)
       const newBooking = saveBooking(bookingData)
-      console.log('✅ Booking saved successfully:', newBooking)
+      console.log('✅ Booking saved:', newBooking.id)
 
       // Set booking data for confirmation modal
       setBookingData({
