@@ -52,6 +52,31 @@ const Dashboard: React.FC = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
+  // Listen for localStorage changes across tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'home_service_bookings' && e.newValue) {
+        console.log('📡 Cross-tab localStorage change detected')
+        fetchData()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+
+    // Also listen for custom events for same-tab updates
+    const handleCustomStorageChange = () => {
+      console.log('🔄 Custom storage change event detected')
+      fetchData()
+    }
+
+    window.addEventListener('bookingsUpdated', handleCustomStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('bookingsUpdated', handleCustomStorageChange)
+    }
+  }, [])
+
   const fetchData = async () => {
     // Use sample services
     setServices(sampleServices)
