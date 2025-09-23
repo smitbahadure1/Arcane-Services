@@ -27,9 +27,15 @@ export const saveBooking = (booking: Omit<Booking, 'id' | 'created_at'>): Bookin
     id: Date.now().toString(),
     created_at: new Date().toISOString()
   }
-  
+
   bookings.push(newBooking)
   localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings))
+
+  // Notify other tabs/components of the update
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bookingsUpdated'))
+  }
+
   return newBooking
 }
 
@@ -49,10 +55,16 @@ export const getBookingsByUserId = (userId: string): Booking[] => {
 export const updateBookingStatus = (bookingId: string, status: Booking['status']): boolean => {
   const bookings = getBookings()
   const bookingIndex = bookings.findIndex(b => b.id === bookingId)
-  
+
   if (bookingIndex !== -1) {
     bookings[bookingIndex].status = status
     localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings))
+
+    // Notify other tabs/components of the update
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bookingsUpdated'))
+    }
+
     return true
   }
   return false
