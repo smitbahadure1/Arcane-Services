@@ -25,15 +25,31 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchData()
+    // Force refresh after a short delay to ensure localStorage is ready
+    setTimeout(() => {
+      fetchData()
+    }, 100)
   }, [])
 
-  // Auto-refresh dashboard every 5 seconds to show new bookings
+  // Auto-refresh dashboard every 3 seconds to show new bookings
   useEffect(() => {
     const interval = setInterval(() => {
       fetchData()
-    }, 5000) // Refresh every 5 seconds
+    }, 3000) // Refresh every 3 seconds (faster)
 
     return () => clearInterval(interval)
+  }, [])
+
+  // Also refresh when component becomes visible (when user switches to dashboard)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchData()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
   const fetchData = async () => {
@@ -42,6 +58,7 @@ const Dashboard: React.FC = () => {
     
     // Get bookings from localStorage
     const bookingsData = getBookings()
+    console.log('🔍 Admin Dashboard - Raw bookings from storage:', bookingsData)
     
     // Add service title to bookings
     const bookingsWithService = bookingsData.map((booking: any) => ({
@@ -49,6 +66,7 @@ const Dashboard: React.FC = () => {
       services: booking.service || { title: 'Unknown Service' }
     }))
     
+    console.log('📋 Admin Dashboard - Processed bookings:', bookingsWithService)
     setBookings(bookingsWithService)
     setCategories(sampleCategories)
 
