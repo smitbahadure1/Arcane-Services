@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Plus, Edit, Trash2, Users, Calendar, IndianRupee, TrendingUp } from 'lucide-react'
+import { Plus, Edit, Trash2, Users, Calendar, IndianRupee, TrendingUp, RefreshCw } from 'lucide-react'
 import { sampleServices, sampleCategories } from '../data/sampleServices'
 import { getBookings, updateBookingStatus } from '../utils/bookingStorage'
 
@@ -25,6 +25,15 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchData()
+  }, [])
+
+  // Auto-refresh dashboard every 5 seconds to show new bookings
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchData()
+    }, 5000) // Refresh every 5 seconds
+
+    return () => clearInterval(interval)
   }, [])
 
   const fetchData = async () => {
@@ -121,9 +130,18 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-4">Admin Dashboard</h1>
-          <p className="text-gray-600">Manage your services and bookings</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">Admin Dashboard</h1>
+            <p className="text-gray-600">Manage your services and bookings</p>
+          </div>
+          <button
+            onClick={fetchData}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span>Refresh</span>
+          </button>
         </div>
 
         {/* Stats Cards */}
