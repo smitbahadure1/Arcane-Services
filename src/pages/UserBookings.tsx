@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { Calendar, Clock, User, Phone, MapPin, MessageSquare, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -102,12 +103,12 @@ const UserBookings: React.FC = () => {
             <Calendar className="h-16 w-16 text-primary-400 mx-auto mb-4" />
             <h3 className="text-title text-primary-600 mb-2">No bookings yet</h3>
             <p className="text-body text-primary-500 mb-6">Book your first service to see it here</p>
-            <a
-              href="/services"
-              className="btn-primary inline-block"
+            <Link
+              to="/services"
+              className="btn-primary inline-block text-center"
             >
               Browse Services
-            </a>
+            </Link>
           </div>
         ) : (
           <div className="space-y-6">
