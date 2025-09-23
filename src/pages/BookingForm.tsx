@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Calendar, Clock, User, Phone, MapPin, MessageSquare, ArrowLeft } from 'lucide-react'
 import { format, addDays, isToday, isTomorrow } from 'date-fns'
-import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import BookingConfirmationModal from '../components/BookingConfirmationModal'
+import { sampleServices } from '../data/sampleServices'
+import { saveBooking } from '../utils/bookingStorage'
 
 const BookingForm: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -40,14 +41,9 @@ const BookingForm: React.FC = () => {
   }, [id])
 
   const fetchService = async (serviceId: string) => {
-    const { data } = await supabase
-      .from('services')
-      .select('*')
-      .eq('id', serviceId)
-      .single()
-
-    if (data) {
-      setService(data)
+    const foundService = sampleServices.find(s => s.id === serviceId)
+    if (foundService) {
+      setService(foundService)
     }
   }
 
@@ -64,24 +60,25 @@ const BookingForm: React.FC = () => {
     setLoading(true)
 
     try {
-      const { data, error } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: user.id,
-          service_id: service.id,
-          booking_date: format(selectedDate, 'yyyy-MM-dd'),
-          booking_time: selectedTime,
-          total_price: service.price,
-          customer_name: customerData.name,
-          customer_phone: customerData.phone,
-          customer_address: customerData.address,
-          special_instructions: customerData.instructions,
-          status: 'pending'
-        })
-        .select()
-        .single()
-
-      if (error) throw error
+      // Save booking
+      const newBooking = saveBooking({
+        user_id: user.uid,
+        service_id: service.id,
+        booking_date: format(selectedDate, 'yyyy-MM-dd'),
+        booking_time: selectedTime,
+        total_price: service.price,
+        customer_name: customerData.name,
+        customer_phone: customerData.phone,
+        customer_address: customerData.address,
+        special_instructions: customerData.instructions,
+        status: 'pending',
+        service: {
+          title: service.title,
+          image_url: service.image_url
+        }
+      })
+      
+      console.log('Booking created:', newBooking)
 
       // Set booking data for confirmation modal
       setBookingData({

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Star, Clock, Shield, Users, Calendar, ArrowLeft } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { sampleServices, sampleCategories } from '../data/sampleServices'
 
 const ServiceDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -18,17 +18,17 @@ const ServiceDetail: React.FC = () => {
   }, [id])
 
   const fetchService = async (serviceId: string) => {
-    const { data } = await supabase
-      .from('services')
-      .select(`
-        *,
-        service_categories(name)
-      `)
-      .eq('id', serviceId)
-      .single()
-
-    if (data) {
-      setService(data)
+    // Find service in sample data
+    const foundService = sampleServices.find(s => s.id === serviceId)
+    
+    if (foundService) {
+      // Add category name to service
+      const category = sampleCategories.find(c => c.id === foundService.category_id)
+      const serviceWithCategory = {
+        ...foundService,
+        service_categories: category ? { name: category.name } : null
+      }
+      setService(serviceWithCategory)
     }
     setLoading(false)
   }

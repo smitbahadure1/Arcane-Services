@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Wrench, Zap, Sparkles, Wind, Leaf, Paintbrush2, ArrowRight, Users, Shield, Clock } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 import ServiceCard from '../components/ServiceCard'
+import { sampleServices, sampleCategories } from '../data/sampleServices'
 
 const Home: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([])
@@ -14,23 +14,14 @@ const Home: React.FC = () => {
   }, [])
 
   const fetchCategories = async () => {
-    const { data } = await supabase
-      .from('service_categories')
-      .select('*')
-      .limit(6)
-
-    if (data) setCategories(data)
+    setCategories(sampleCategories.slice(0, 6))
   }
 
   const fetchFeaturedServices = async () => {
-    const { data } = await supabase
-      .from('services')
-      .select('*')
-      .eq('availability', true)
-      .order('rating', { ascending: false })
-      .limit(6)
-
-    if (data) setFeaturedServices(data)
+    const sortedServices = [...sampleServices]
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .slice(0, 6)
+    setFeaturedServices(sortedServices)
   }
 
 

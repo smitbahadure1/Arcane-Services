@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { Calendar, Clock, User, Phone, MapPin, MessageSquare, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { getBookingsByUserId, updateBookingStatus } from '../utils/bookingStorage'
 
 const UserBookings: React.FC = () => {
   const { user } = useAuth()
@@ -16,17 +16,9 @@ const UserBookings: React.FC = () => {
   }, [user])
 
   const fetchBookings = async () => {
-    const { data } = await supabase
-      .from('bookings')
-      .select(`
-        *,
-        services(title, image_url)
-      `)
-      .eq('user_id', user?.id)
-      .order('created_at', { ascending: false })
-
-    if (data) {
-      setBookings(data)
+    if (user) {
+      const userBookings = getBookingsByUserId(user.uid)
+      setBookings(userBookings)
     }
     setLoading(false)
   }
@@ -60,15 +52,12 @@ const UserBookings: React.FC = () => {
   const handleCancelBooking = async (bookingId: string) => {
     if (!confirm('Are you sure you want to cancel this booking?')) return
 
-    const { error } = await supabase
-      .from('bookings')
-      .update({ status: 'cancelled' })
-      .eq('id', bookingId)
-
-    if (error) {
-      alert('Error cancelling booking')
-    } else {
+    const success = updateBookingStatus(bookingId, 'cancelled')
+    
+    if (success) {
       fetchBookings() // Refresh the list
+    } else {
+      alert('Error cancelling booking')
     }
   }
 

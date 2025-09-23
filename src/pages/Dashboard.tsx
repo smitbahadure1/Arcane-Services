@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Plus, Edit, Trash2, Users, Calendar, IndianRupee, TrendingUp } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { sampleServices, sampleCategories } from '../data/sampleServices'
+import { getBookings, updateBookingStatus } from '../utils/bookingStorage'
 
 const Dashboard: React.FC = () => {
   const [services, setServices] = useState<any[]>([])
@@ -27,50 +28,33 @@ const Dashboard: React.FC = () => {
   }, [])
 
   const fetchData = async () => {
-    // Fetch services
-    const { data: servicesData } = await supabase
-      .from('services')
-      .select('*')
-      .order('created_at', { ascending: false })
+    // Use sample services
+    setServices(sampleServices)
+    
+    // Get bookings from localStorage
+    const bookingsData = getBookings()
+    
+    // Add service title to bookings
+    const bookingsWithService = bookingsData.map((booking: any) => ({
+      ...booking,
+      services: booking.service || { title: 'Unknown Service' }
+    }))
+    
+    setBookings(bookingsWithService)
+    setCategories(sampleCategories)
 
-    // Fetch bookings
-    const { data: bookingsData } = await supabase
-      .from('bookings')
-      .select(`
-        *,
-        services(title)
-      `)
-      .order('created_at', { ascending: false })
+    // Calculate stats
+    const totalRevenue = bookingsData
+      .filter((b: any) => b.status !== 'cancelled')
+      .reduce((sum: number, booking: any) => sum + parseFloat(booking.total_price), 0)
+    const pendingBookings = bookingsData.filter((b: any) => b.status === 'pending').length
 
-    // Fetch categories
-    const { data: categoriesData } = await supabase
-      .from('service_categories')
-      .select('*')
-      .order('name')
-
-    if (servicesData) {
-      setServices(servicesData)
-      setStats(prev => ({ ...prev, totalServices: servicesData.length }))
-    }
-
-    if (bookingsData) {
-      setBookings(bookingsData)
-      const totalRevenue = bookingsData
-        .filter(b => b.status !== 'cancelled')
-        .reduce((sum, booking) => sum + parseFloat(booking.total_price), 0)
-      const pendingBookings = bookingsData.filter(b => b.status === 'pending').length
-
-      setStats(prev => ({
-        ...prev,
-        totalBookings: bookingsData.length,
-        totalRevenue,
-        pendingBookings
-      }))
-    }
-
-    if (categoriesData) {
-      setCategories(categoriesData)
-    }
+    setStats({
+      totalServices: sampleServices.length,
+      totalBookings: bookingsData.length,
+      totalRevenue,
+      pendingBookings
+    })
   }
 
   const handleServiceSubmit = async (e: React.FormEvent) => {
@@ -81,27 +65,16 @@ const Dashboard: React.FC = () => {
       price: parseFloat(serviceForm.price)
     }
 
+    // Service management functionality
     if (editingService) {
-      const { error } = await supabase
-        .from('services')
-        .update(serviceData)
-        .eq('id', editingService.id)
-      
-      if (!error) {
-        setEditingService(null)
-        resetForm()
-        fetchData()
-      }
+      console.log('Service updated:', serviceData)
     } else {
-      const { error } = await supabase
-        .from('services')
-        .insert([serviceData])
-      
-      if (!error) {
-        resetForm()
-        fetchData()
-      }
+      console.log('Service created:', serviceData)
     }
+    
+    setEditingService(null)
+    resetForm()
+    fetchData()
   }
 
   const resetForm = () => {
@@ -130,25 +103,18 @@ const Dashboard: React.FC = () => {
 
   const handleDeleteService = async (serviceId: string) => {
     if (!confirm('Are you sure you want to delete this service?')) return
-
-    const { error } = await supabase
-      .from('services')
-      .delete()
-      .eq('id', serviceId)
-
-    if (!error) {
-      fetchData()
-    }
+    
+    console.log('Service deleted:', serviceId)
+    fetchData()
   }
 
-  const updateBookingStatus = async (bookingId: string, status: string) => {
-    const { error } = await supabase
-      .from('bookings')
-      .update({ status })
-      .eq('id', bookingId)
-
-    if (!error) {
+  const handleUpdateBookingStatus = async (bookingId: string, status: string) => {
+    const success = updateBookingStatus(bookingId, status as any)
+    
+    if (success) {
       fetchData()
+    } else {
+      alert('Error updating booking status')
     }
   }
 
@@ -263,7 +229,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     <select
                       value={booking.status}
-                      onChange={(e) => updateBookingStatus(booking.id, e.target.value)}
+                      onChange={(e) => handleUpdateBookingStatus(booking.id, e.target.value)}
                       className="text-sm border border-gray-300 rounded px-2 py-1"
                     >
                       <option value="pending">Pending</option>

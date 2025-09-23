@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Filter, Grid, List } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 import ServiceCard from '../components/ServiceCard'
+import { sampleServices, sampleCategories } from '../data/sampleServices'
 
 const Services: React.FC = () => {
   const [services, setServices] = useState<any[]>([])
@@ -19,38 +19,29 @@ const Services: React.FC = () => {
   }, [selectedCategory, sortBy])
 
   const fetchCategories = async () => {
-    const { data } = await supabase
-      .from('service_categories')
-      .select('*')
-      .order('name')
-
-    if (data) setCategories(data)
+    setCategories(sampleCategories)
   }
 
   const fetchServices = async () => {
     setLoading(true)
-    let query = supabase
-      .from('services')
-      .select('*')
-      .eq('availability', true)
-
+    
+    let filteredServices = [...sampleServices]
+    
+    // Filter by category
     if (selectedCategory) {
-      query = query.eq('category_id', selectedCategory)
+      filteredServices = filteredServices.filter(service => service.category_id === selectedCategory)
     }
 
+    // Sort services
     if (sortBy === 'rating') {
-      query = query.order('rating', { ascending: false })
+      filteredServices.sort((a, b) => (b.rating || 0) - (a.rating || 0))
     } else if (sortBy === 'price_low') {
-      query = query.order('price', { ascending: true })
+      filteredServices.sort((a, b) => a.price - b.price)
     } else if (sortBy === 'price_high') {
-      query = query.order('price', { ascending: false })
+      filteredServices.sort((a, b) => b.price - a.price)
     }
 
-    const { data } = await query
-
-    if (data) {
-      setServices(data)
-    }
+    setServices(filteredServices)
     setLoading(false)
   }
 
@@ -106,7 +97,7 @@ const Services: React.FC = () => {
                     />
                     <span className="text-primary-700 font-medium">All Categories</span>
                   </label>
-                  {categories.map((category, index) => (
+                  {categories.map((category) => (
                     <label key={category.id} className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-primary-50 transition-colors">
                       <input
                         type="radio"
