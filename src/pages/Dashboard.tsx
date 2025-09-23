@@ -56,9 +56,12 @@ const Dashboard: React.FC = () => {
     // Use sample services
     setServices(sampleServices)
     
-    // Get bookings from localStorage
+    // Get bookings from localStorage - check what's actually stored
+    const rawStorage = localStorage.getItem('home_service_bookings')
+    console.log('🔍 Raw localStorage data:', rawStorage)
+    
     const bookingsData = getBookings()
-    console.log('🔍 Admin Dashboard - Raw bookings from storage:', bookingsData)
+    console.log('📊 Parsed bookings:', bookingsData)
     
     // Add service title to bookings
     const bookingsWithService = bookingsData.map((booking: any) => ({
@@ -66,7 +69,6 @@ const Dashboard: React.FC = () => {
       services: booking.service || { title: 'Unknown Service' }
     }))
     
-    console.log('📋 Admin Dashboard - Processed bookings:', bookingsWithService)
     setBookings(bookingsWithService)
     setCategories(sampleCategories)
 
