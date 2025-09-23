@@ -28,6 +28,9 @@ export const saveBooking = (booking: Omit<Booking, 'id' | 'created_at'>): Bookin
     created_at: new Date().toISOString()
   }
 
+  console.log('🔥 Saving booking with ID:', newBooking.id)
+  console.log('🔥 Booking data:', newBooking)
+
   bookings.push(newBooking)
   localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings))
 
@@ -42,8 +45,12 @@ export const saveBooking = (booking: Omit<Booking, 'id' | 'created_at'>): Bookin
 export const getBookings = (): Booking[] => {
   try {
     const bookings = localStorage.getItem(BOOKINGS_KEY)
-    return bookings ? JSON.parse(bookings) : []
-  } catch {
+    const parsedBookings = bookings ? JSON.parse(bookings) : []
+    console.log('📊 Retrieved bookings:', parsedBookings.length)
+    console.log('📊 Booking IDs:', parsedBookings.map((b: Booking) => b.id))
+    return parsedBookings
+  } catch (error) {
+    console.error('❌ Error getting bookings:', error)
     return []
   }
 }
