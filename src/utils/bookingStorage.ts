@@ -29,7 +29,15 @@ export const saveBooking = (booking: Omit<Booking, 'id' | 'created_at'>): Bookin
   }
   
   bookings.push(newBooking)
+  console.log('💾 Saving booking to localStorage:', newBooking)
+  console.log('📦 All bookings before save:', bookings)
+  
   localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings))
+  
+  // Verify it was saved
+  const saved = localStorage.getItem(BOOKINGS_KEY)
+  console.log('✅ Verified saved data:', saved)
+  
   return newBooking
 }
 
