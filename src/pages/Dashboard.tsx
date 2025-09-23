@@ -317,6 +317,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-800">{booking.services?.title}</h3>
                       <p className="text-sm text-gray-600">{booking.customer_name}</p>
+                      <p className="text-xs text-gray-500">ID: {booking.id}</p>
                     </div>
                     <select
                       value={booking.status}
