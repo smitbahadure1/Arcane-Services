@@ -81,6 +81,17 @@ const BookingForm: React.FC = () => {
       const newBooking = saveBooking(bookingData)
       console.log('✅ Booking saved:', newBooking.id)
 
+      // DEBUG: Verify the booking was saved
+      console.log('🔍 DEBUG: Checking if booking exists in localStorage...')
+      const allBookings = JSON.parse(localStorage.getItem('home_service_bookings') || '[]')
+      console.log('🔍 DEBUG: All bookings after save:', allBookings.length)
+      const savedBooking = allBookings.find((b: any) => b.id === newBooking.id)
+      if (savedBooking) {
+        console.log('✅ DEBUG: Booking found in localStorage:', savedBooking)
+      } else {
+        console.log('❌ DEBUG: Booking NOT found in localStorage!')
+      }
+
       // Set booking data for confirmation modal
       setBookingData({
         serviceName: service.title,
