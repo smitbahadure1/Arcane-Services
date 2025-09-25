@@ -49,7 +49,7 @@ const Register: React.FC = () => {
           <div className="text-center mb-8">
             <UserPlus className="mx-auto h-12 w-12 text-blue-600" />
             <h2 className="mt-4 text-3xl font-bold text-gray-900">Sign Up</h2>
-            <p className="mt-2 text-gray-600">Create your ServiceHub account</p>
+            <p className="mt-2 text-gray-600">Create your Arcane Services account</p>
           </div>
 
           {error && (
