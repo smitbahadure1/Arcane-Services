@@ -15,14 +15,28 @@ interface ServiceCardProps {
 }
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ service }) => {
+  const resolveImageSrc = (url?: string) => {
+    if (!url) return undefined
+    if (url.startsWith('/')) {
+      const base = (import.meta as any).env?.BASE_URL || '/'
+      return `${base.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
+    }
+    return url
+  }
+
+  const fallbackImage = 'https://images.pexels.com/photos/4792509/pexels-photo-4792509.jpeg?auto=compress&cs=tinysrgb&w=800'
+
   return (
     <Link to={`/service/${service.id}`} className="block group">
       <div className="card overflow-hidden group-hover:-translate-y-2 transition-all duration-300">
         <div className="relative h-56 overflow-hidden">
           <img
-            src={service.image_url || 'https://images.pexels.com/photos/4792509/pexels-photo-4792509.jpeg?auto=compress&cs=tinysrgb&w=800'}
+            src={resolveImageSrc(service.image_url) || fallbackImage}
             alt={service.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={(e) => {
+              e.currentTarget.src = fallbackImage
+            }}
           />
           {!service.availability && (
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
