@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
-import { Calendar, Clock, User, Phone, MapPin, MessageSquare, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react'
+import { Calendar, Clock, User, Phone, MapPin, MessageSquare, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { getBookingsByUserId, updateBookingStatus } from '../utils/bookingStorage'
+import { fsGetBookingsByUserId, fsUpdateBookingStatus, cloudGetBookingsByUserId, cloudUpdateBookingStatus } from '../utils/bookingStorage'
+import { db } from '../lib/firebase'
+import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore'
 
 const UserBookings: React.FC = () => {
   const { user } = useAuth()
@@ -11,25 +13,41 @@ const UserBookings: React.FC = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user) {
+    if (!user) return
+    // Realtime Firestore subscription for this user's bookings
+    let unsubscribe: (() => void) | null = null
+    try {
+      const q = query(
+        collection(db, 'bookings'),
+        where('user_id', '==', user.uid),
+        orderBy('created_at', 'desc')
+      )
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const docs = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
+        setBookings(docs)
+        setLoading(false)
+      }, () => {
+        fetchBookings()
+      })
+    } catch {
       fetchBookings()
     }
+    return () => { if (unsubscribe) unsubscribe() }
   }, [user])
 
-  // Auto-refresh bookings every 5 seconds to show real-time updates
+  // Fallback periodic refresh
   useEffect(() => {
-    if (user) {
-      const interval = setInterval(() => {
-        fetchBookings()
-      }, 5000) // Refresh every 5 seconds
-
-      return () => clearInterval(interval)
-    }
+    if (!user) return
+    const interval = setInterval(fetchBookings, 15000)
+    return () => clearInterval(interval)
   }, [user])
 
   const fetchBookings = async () => {
     if (user) {
-      const userBookings = getBookingsByUserId(user.uid)
+      let userBookings = await fsGetBookingsByUserId(user.uid)
+      if (!userBookings || userBookings.length === 0) {
+        userBookings = await cloudGetBookingsByUserId(user.uid)
+      }
       setBookings(userBookings)
     }
     setLoading(false)
@@ -64,7 +82,10 @@ const UserBookings: React.FC = () => {
   const handleCancelBooking = async (bookingId: string) => {
     if (!confirm('Are you sure you want to cancel this booking?')) return
 
-    const success = updateBookingStatus(bookingId, 'cancelled')
+    let success = await fsUpdateBookingStatus(bookingId, 'cancelled')
+    if (!success) {
+      success = await cloudUpdateBookingStatus(bookingId, 'cancelled')
+    }
     
     if (success) {
       fetchBookings() // Refresh the list
@@ -89,13 +110,6 @@ const UserBookings: React.FC = () => {
             <h1 className="text-headline text-primary-900 mb-4">My Bookings</h1>
             <p className="text-body text-primary-600">Manage your service bookings and track their status</p>
           </div>
-          <button
-            onClick={fetchBookings}
-            className="flex items-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span>Refresh</span>
-          </button>
         </div>
 
         {bookings.length === 0 ? (
