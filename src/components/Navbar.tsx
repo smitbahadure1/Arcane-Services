@@ -32,7 +32,7 @@ const Navbar: React.FC = () => {
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
                 <Home className="h-4 w-4 text-white" />
               </div>
-              <span>ServiceHub</span>
+              <span>Arcane Services</span>
             </Link>
 
             <button
@@ -126,7 +126,7 @@ const Navbar: React.FC = () => {
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
                 <Home className="h-6 w-6 text-white" />
               </div>
-              <span>ServiceHub</span>
+              <span>Arcane Services</span>
             </Link>
           </div>
 
