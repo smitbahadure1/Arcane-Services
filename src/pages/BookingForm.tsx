@@ -3,9 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Calendar, Clock, User, Phone, MapPin, MessageSquare, ArrowLeft } from 'lucide-react'
 import { format, addDays, isToday, isTomorrow } from 'date-fns'
 import { useAuth } from '../contexts/AuthContext'
-import BookingConfirmationModal from '../components/BookingConfirmationModal'
+import PaymentModal from '../components/PaymentModal'
 import { sampleServices } from '../data/sampleServices'
-import { saveBooking } from '../utils/bookingStorage'
+import { cloudSaveBooking, fsSaveBooking } from '../utils/bookingStorage'
 
 const BookingForm: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -21,8 +21,8 @@ const BookingForm: React.FC = () => {
     instructions: ''
   })
   const [loading, setLoading] = useState(false)
-  const [showConfirmation, setShowConfirmation] = useState(false)
-  const [bookingData, setBookingData] = useState<any>(null)
+  const [showPayment, setShowPayment] = useState(false)
+  const [pendingBookingData, setPendingBookingData] = useState<any>(null)
 
   // Generate available dates (next 30 days)
   const availableDates = Array.from({ length: 30 }, (_, i) => addDays(new Date(), i))
@@ -60,7 +60,7 @@ const BookingForm: React.FC = () => {
     setLoading(true)
 
     try {
-      // Save booking
+      // Create booking data
       const bookingData = {
         user_id: user.uid,
         service_id: service.id,
@@ -77,22 +77,28 @@ const BookingForm: React.FC = () => {
           image_url: service.image_url
         }
       }
-      
-      saveBooking(bookingData)
 
-      // Set booking data for confirmation modal
-      setBookingData({
-        serviceName: service.title,
-        date: format(selectedDate, 'MMMM d, yyyy'),
-        time: selectedTime,
+      // Save booking as pending
+      // Prefer Firestore if available; else Supabase; else local
+      let savedBooking = await fsSaveBooking(bookingData)
+      if (!savedBooking?.id) {
+        savedBooking = await cloudSaveBooking(bookingData)
+      }
+
+      // Store for payment retry if needed
+      const paymentData = {
+        amount: service.price,
         customerName: customerData.name,
-        phone: customerData.phone,
-        address: customerData.address,
-        totalPrice: service.price
-      })
+        customerEmail: user.email || '',
+        customerPhone: customerData.phone,
+        description: service.title,
+        bookingId: savedBooking.id
+      }
 
-      // Show confirmation modal
-      setShowConfirmation(true)
+      setPendingBookingData(paymentData)
+
+      // Show payment modal instead of confirmation
+      setShowPayment(true)
     } catch (error) {
       console.error('Error creating booking:', error)
       alert('Error creating booking. Please try again.')
@@ -101,11 +107,65 @@ const BookingForm: React.FC = () => {
     }
   }
 
-  const handleCloseConfirmation = () => {
-    setShowConfirmation(false)
-    navigate('/bookings', { 
-      state: { message: 'Booking created successfully!' }
-    })
+  const handlePaymentSuccess = (transactionId: string) => {
+    // Update booking status to confirmed
+    const bookings = JSON.parse(localStorage.getItem('home_service_bookings') || '[]')
+    const bookingIndex = bookings.findIndex((b: any) => b.id === pendingBookingData.bookingId)
+
+    if (bookingIndex !== -1) {
+      bookings[bookingIndex].status = 'confirmed'
+      bookings[bookingIndex].transaction_id = transactionId
+      bookings[bookingIndex].payment_verified_at = new Date().toISOString()
+      localStorage.setItem('home_service_bookings', JSON.stringify(bookings))
+    }
+
+    // Clear pending booking data
+    localStorage.removeItem('pending_booking')
+    setPendingBookingData(null)
+
+    // Navigate to success page
+    navigate(`/payment/success?transaction_id=${transactionId}&booking_id=${pendingBookingData.bookingId}`)
+  }
+
+  const handlePaymentFailure = (error: string) => {
+    // Store booking data for retry
+    localStorage.setItem('pending_booking', JSON.stringify({
+      serviceId: service.id,
+      customerData,
+      selectedDate: format(selectedDate!, 'yyyy-MM-dd'),
+      selectedTime
+    }))
+
+    // Show user-friendly error message
+    if (error.includes('Network')) {
+      alert(`⚠️ Network Issue Detected
+
+Your booking was created successfully, but there was a network connectivity issue.
+
+What happened:
+• Your booking for "${service.title}" is saved
+• Payment system encountered network issues
+• This is common in demo environments
+
+Options:
+1. Try payment again (recommended)
+2. Contact admin for manual verification
+3. Payment will be processed when network improves
+
+Your booking reference: ${pendingBookingData?.bookingId || 'N/A'}`)
+    } else {
+      alert(`Payment Error: ${error}
+
+Please try again or contact support.`)
+    }
+
+    // Navigate to failure page with error details
+    navigate(`/payment/failure?error=${encodeURIComponent(error)}`)
+  }
+
+  const handleClosePayment = () => {
+    setShowPayment(false)
+    setPendingBookingData(null)
   }
 
   if (!service) {
@@ -210,11 +270,17 @@ const BookingForm: React.FC = () => {
                 <input
                   type="tel"
                   required
+                  maxLength={10}
+                  pattern="[6-9][0-9]{9}"
                   value={customerData.phone}
                   onChange={(e) => setCustomerData({ ...customerData, phone: e.target.value })}
                   className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your phone number"
+                  placeholder="Enter your 10-digit phone number"
+                  title="Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {customerData.phone.length}/10 characters
+                </p>
               </div>
             </div>
 
@@ -294,12 +360,16 @@ const BookingForm: React.FC = () => {
         </div>
       </div>
 
-      {/* Booking Confirmation Modal */}
-      <BookingConfirmationModal
-        isOpen={showConfirmation}
-        onClose={handleCloseConfirmation}
-        bookingData={bookingData}
-      />
+      {/* Payment Modal */}
+      {showPayment && pendingBookingData && (
+        <PaymentModal
+          isOpen={showPayment}
+          onClose={handleClosePayment}
+          bookingData={pendingBookingData}
+          onPaymentSuccess={handlePaymentSuccess}
+          onPaymentFailure={handlePaymentFailure}
+        />
+      )}
     </div>
   )
 }
