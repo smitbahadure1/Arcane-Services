@@ -50,7 +50,7 @@ const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
 
         {/* Message */}
         <p className="text-gray-300 text-center mb-6 leading-relaxed">
-          Thank you for choosing ServiceHub. Our team will contact you within 24 hours to confirm your service details.
+          Thank you for choosing Arcane Services. Our team will contact you within 24 hours to confirm your service details.
         </p>
 
         {/* Booking Details */}
