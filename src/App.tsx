@@ -1,4 +1,3 @@
-import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import Navbar from './components/Navbar'
@@ -11,6 +10,8 @@ import ServiceDetail from './pages/ServiceDetail'
 import BookingForm from './pages/BookingForm'
 import UserBookings from './pages/UserBookings'
 import Dashboard from './pages/Dashboard'
+import PaymentSuccess from './pages/PaymentSuccess'
+import PaymentFailure from './pages/PaymentFailure'
 import Login from './pages/Login'
 import Register from './pages/Register'
 
@@ -42,6 +43,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <UserBookings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment/success"
+              element={
+                <ProtectedRoute>
+                  <PaymentSuccess />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment/failure"
+              element={
+                <ProtectedRoute>
+                  <PaymentFailure />
                 </ProtectedRoute>
               }
             />
