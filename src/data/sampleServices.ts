@@ -3,7 +3,7 @@ export const sampleServices = [
     id: '1',
     title: 'House Cleaning',
     description: 'Professional house cleaning service with eco-friendly products',
-    price: 50,
+    price: 699, // ✅ Updated to ₹699
     image_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&auto=format&fit=crop',
     rating: 4.8,
     availability: true,
@@ -14,8 +14,8 @@ export const sampleServices = [
     id: '2', 
     title: 'Plumbing Repair',
     description: 'Expert plumbing services for all your home repair needs',
-    price: 80,
-    image_url: 'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?w=800&auto=format&fit=crop',
+    price: 499, // ✅ Updated to ₹499 (Running Repair)
+    image_url: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&auto=format&fit=crop', // ✅ Professional plumbing tools - VISIBLE NOW
     rating: 4.9,
     availability: true,
     category_id: '2',
@@ -25,7 +25,7 @@ export const sampleServices = [
     id: '3',
     title: 'Electrical Work',
     description: 'Licensed electrician for installations and repairs',
-    price: 90,
+    price: 549, // ✅ Updated to ₹549
     image_url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=800&auto=format&fit=crop',
     rating: 4.7,
     availability: true,
@@ -36,7 +36,7 @@ export const sampleServices = [
     id: '4',
     title: 'Garden Maintenance',
     description: 'Complete garden care including lawn mowing and landscaping',
-    price: 60,
+    price: 399, // ✅ Updated to ₹399
     image_url: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&auto=format&fit=crop',
     rating: 4.6,
     availability: true,
@@ -47,7 +47,7 @@ export const sampleServices = [
     id: '5',
     title: 'AC Repair & Maintenance',
     description: 'Air conditioning repair and maintenance services',
-    price: 100,
+    price: 649, // ✅ Updated to ₹649
     image_url: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=800&auto=format&fit=crop',
     rating: 4.8,
     availability: true,
@@ -58,7 +58,7 @@ export const sampleServices = [
     id: '6',
     title: 'Carpet Cleaning',
     description: 'Deep carpet cleaning with professional equipment',
-    price: 70,
+    price: 499, // ✅ Updated to ₹499
     image_url: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=800&auto=format&fit=crop',
     rating: 4.5,
     availability: true,
@@ -69,7 +69,7 @@ export const sampleServices = [
     id: '7',
     title: 'Painting Service',
     description: 'Professional interior and exterior painting with premium quality paints',
-    price: 120,
+    price: 599, // ✅ Updated to ₹599 (for a small room)
     image_url: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800&auto=format&fit=crop',
     rating: 4.9,
     availability: true,
@@ -80,7 +80,7 @@ export const sampleServices = [
     id: '8',
     title: 'Pest Control',
     description: 'Safe and effective pest control solutions for your home',
-    price: 85,
+    price: 599, // ✅ Updated to ₹599
     image_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&auto=format&fit=crop',
     rating: 4.7,
     availability: true,
@@ -91,8 +91,8 @@ export const sampleServices = [
     id: '9',
     title: 'Appliance Repair',
     description: 'Expert repair services for all home appliances - washing machines, refrigerators, microwaves',
-    price: 95,
-    image_url: 'https://images.unsplash.com/photo-1581092918484-8313de5ad9c5?w=800&auto=format&fit=crop',
+    price: 599, // ✅ Updated to ₹599
+    image_url: '/appliance-repair.jpg',
     rating: 4.8,
     availability: true,
     category_id: '9',
