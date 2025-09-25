@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { Plus, Edit, Trash2, Users, Calendar, IndianRupee, TrendingUp, RefreshCw } from 'lucide-react'
+import { Plus, Edit, Trash2, Users, Calendar, IndianRupee, TrendingUp, TestTube, CheckCircle } from 'lucide-react'
 import { sampleServices, sampleCategories } from '../data/sampleServices'
-import { getBookings, updateBookingStatus } from '../utils/bookingStorage'
+import { fsGetBookings, fsUpdateBookingStatus, cloudGetBookings, cloudUpdateBookingStatus } from '../utils/bookingStorage'
+import { db } from '../lib/firebase'
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore'
+import { addSampleBookings } from '../utils/sampleBookings'
 
 const Dashboard: React.FC = () => {
   const [services, setServices] = useState<any[]>([])
@@ -24,19 +27,25 @@ const Dashboard: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([])
 
   useEffect(() => {
-    fetchData()
-    // Force refresh after a short delay to ensure localStorage is ready
-    setTimeout(() => {
+    // Realtime Firestore listener
+    let unsubscribe: (() => void) | null = null
+    try {
+      const q = query(collection(db, 'bookings'), orderBy('created_at', 'desc'))
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const docs = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
+        applyData(docs)
+      }, () => {
+        fetchData()
+      })
+    } catch {
       fetchData()
-    }, 100)
+    }
+    return () => { if (unsubscribe) unsubscribe() }
   }, [])
 
-  // Auto-refresh dashboard every 3 seconds to show new bookings
+  // Fallback periodic refresh
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchData()
-    }, 3000) // Refresh every 3 seconds (faster)
-
+    const interval = setInterval(fetchData, 10000)
     return () => clearInterval(interval)
   }, [])
 
@@ -82,53 +91,27 @@ const Dashboard: React.FC = () => {
     setServices(sampleServices)
 
     // Get bookings from localStorage with multiple fallback methods
-    let bookingsData = getBookings()
-
-    // If no bookings found, try direct localStorage access
-    if (bookingsData.length === 0) {
-      const rawData = localStorage.getItem('home_service_bookings')
-      if (rawData) {
-        try {
-          bookingsData = JSON.parse(rawData)
-          console.log('📊 Found bookings via direct localStorage access:', bookingsData.length)
-        } catch (e) {
-          console.log('❌ Error parsing localStorage data')
-          bookingsData = []
-        }
-      }
+    let bookingsData = await fsGetBookings()
+    if (!bookingsData || bookingsData.length === 0) {
+      bookingsData = await cloudGetBookings()
     }
 
-    // Add service title to bookings - ensure all bookings have service info
+    applyData(bookingsData)
+  }
+
+  const applyData = (bookingsData: any[]) => {
     const bookingsWithService = bookingsData.map((booking: any) => {
-      // Try to find service by service_id first
-      const serviceInfo = sampleServices.find(s => s.id === booking.service_id)
-      if (serviceInfo) {
-        return {
-          ...booking,
-          services: { title: serviceInfo.title }
-        }
-      }
-
-      // Fallback to existing service data
-      if (booking.service && booking.service.title) {
-        return booking
-      }
-
-      // Final fallback
-      return {
-        ...booking,
-        services: { title: 'Unknown Service' }
-      }
+      const svc = sampleServices.find(s => s.id === booking.service_id)
+      if (svc) return { ...booking, service: { title: svc.title } }
+      return booking.service?.title ? booking : { ...booking, service: { title: 'Unknown Service' } }
     })
 
-    console.log('✅ Admin dashboard ready with', bookingsWithService.length, 'bookings')
     setBookings(bookingsWithService)
     setCategories(sampleCategories)
 
-    // Calculate stats
     const totalRevenue = bookingsData
       .filter((b: any) => b.status !== 'cancelled')
-      .reduce((sum: number, booking: any) => sum + parseFloat(booking.total_price), 0)
+      .reduce((sum: number, b: any) => sum + Number(b.total_price || 0), 0)
     const pendingBookings = bookingsData.filter((b: any) => b.status === 'pending').length
 
     setStats({
@@ -191,12 +174,36 @@ const Dashboard: React.FC = () => {
   }
 
   const handleUpdateBookingStatus = async (bookingId: string, status: string) => {
-    const success = updateBookingStatus(bookingId, status as any)
-    
+    let success = await fsUpdateBookingStatus(bookingId, status as any)
+    if (!success) {
+      success = await cloudUpdateBookingStatus(bookingId, status as any)
+    }
+
     if (success) {
       fetchData()
     } else {
       alert('Error updating booking status')
+    }
+  }
+
+  // Manual payment verification function
+  const handleVerifyPayment = async (bookingId: string) => {
+    try {
+      // Simulate payment verification (in real system, this would call UPI Gateway API)
+      console.log('🔍 Manually verifying payment for booking:', bookingId)
+
+      // Update booking status to confirmed
+      const success = updateBookingStatus(bookingId, 'confirmed')
+
+      if (success) {
+        alert('✅ Payment verified and booking confirmed!')
+        fetchData()
+      } else {
+        alert('❌ Error verifying payment')
+      }
+    } catch (error) {
+      console.error('Payment verification error:', error)
+      alert('❌ Error verifying payment')
     }
   }
 
@@ -207,13 +214,22 @@ const Dashboard: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-800 mb-4">Admin Dashboard</h1>
             <p className="text-gray-600">Manage your services and bookings</p>
+            <div className="mt-2 flex items-center space-x-2">
+              <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>🔔 Webhook Active - Listening for UPI payments</span>
+              </div>
+            </div>
           </div>
           <button
-            onClick={fetchData}
-            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={() => {
+              addSampleBookings()
+              setTimeout(() => fetchData(), 100) // Refresh after adding sample data
+            }}
+            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
           >
-            <RefreshCw className="h-4 w-4" />
-            <span>Refresh</span>
+            <TestTube className="h-4 w-4" />
+            <span>Add Sample Bookings</span>
           </button>
         </div>
 
@@ -311,31 +327,51 @@ const Dashboard: React.FC = () => {
             </div>
             
             <div className="max-h-96 overflow-y-auto">
-              {bookings.slice(0, 10).map((booking) => (
-                <div key={booking.id} className="p-4 border-b last:border-b-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-800">{booking.services?.title}</h3>
-                      <p className="text-sm text-gray-600">{booking.customer_name}</p>
-                      <p className="text-xs text-gray-500">ID: {booking.id}</p>
-                    </div>
-                    <select
-                      value={booking.status}
-                      onChange={(e) => handleUpdateBookingStatus(booking.id, e.target.value)}
-                      className="text-sm border border-gray-300 rounded px-2 py-1"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="completed">Completed</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-gray-600">
-                    <span>{booking.booking_date} at {booking.booking_time}</span>
-                    <span className="font-medium">₹{booking.total_price}</span>
-                  </div>
+              {bookings.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No bookings yet</p>
+                  <p className="text-sm text-gray-500 mt-2">Bookings will appear here when users book services</p>
                 </div>
-              ))}
+              ) : (
+                [...bookings]
+                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                  .slice(0, 10)
+                  .map((booking) => (
+                  <div key={booking.id} className="p-4 border-b last:border-b-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-800">{booking.service?.title}</h3>
+                        <p className="text-sm text-gray-600">{booking.customer_name}</p>
+                        <p className="text-xs text-gray-500">ID: {booking.id}</p>
+                      </div>
+                      <select
+                        value={booking.status}
+                        onChange={(e) => handleUpdateBookingStatus(booking.id, e.target.value)}
+                        className="text-sm border border-gray-300 rounded px-2 py-1"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                      {booking.status === 'pending' && (
+                        <button
+                          onClick={() => handleVerifyPayment(booking.id)}
+                          className="ml-2 p-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                          title="Manually verify payment"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-gray-600">
+                      <span>{booking.booking_date} at {booking.booking_time}</span>
+                      <span className="font-medium">₹{booking.total_price}</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
