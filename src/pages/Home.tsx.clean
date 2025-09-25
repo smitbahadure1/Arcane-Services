@@ -1,0 +1,100 @@
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Wrench, Shield, Clock, ArrowRight } from 'lucide-react';
+import ServiceCard from '../components/ServiceCard';
+import { sampleServices, sampleCategories } from '../data/sampleServices';
+
+const Home: React.FC = () => {
+  const [categories, setCategories] = useState<any[]>([]);
+  const [featuredServices, setFeaturedServices] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchCategories();
+    fetchFeaturedServices();
+  }, []);
+
+  const fetchCategories = async () => {
+    setCategories(sampleCategories.slice(0, 6));
+  };
+
+  const fetchFeaturedServices = async () => {
+    const sortedServices = [...sampleServices]
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .slice(0, 6);
+    setFeaturedServices(sortedServices);
+  };
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-primary-900 via-primary-800 to-accent-800 text-white py-16 md:py-24 lg:py-32 overflow-hidden">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+            Professional Home Services
+          </h1>
+          <p className="text-xl md:text-2xl mb-8">
+            Book trusted professionals for all your home service needs
+          </p>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap justify-center gap-8">
+            <div className="flex flex-col items-center space-y-3 group">
+              <div className="w-16 h-16 bg-gradient-to-br from-primary-400/30 to-primary-500/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 backdrop-blur-sm border border-primary-300/20">
+                <Wrench className="h-8 w-8 text-primary-300" />
+              </div>
+              <span className="text-caption font-medium">Verified Professionals</span>
+            </div>
+            <div className="flex flex-col items-center space-y-3 group">
+              <div className="w-16 h-16 bg-gradient-to-br from-accent-400/30 to-accent-500/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 backdrop-blur-sm border border-accent-300/20">
+                <Shield className="h-8 w-8 text-accent-300" />
+              </div>
+              <span className="text-caption font-medium">Satisfaction Guaranteed</span>
+            </div>
+            <div className="flex flex-col items-center space-y-3 group">
+              <div className="w-16 h-16 bg-gradient-to-br from-warning-400/30 to-warning-500/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 backdrop-blur-sm border border-warning-300/20">
+                <Clock className="h-8 w-8 text-warning-300" />
+              </div>
+              <span className="text-caption font-medium">24/7 Support</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Service Categories */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Our Services
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Choose from our wide range of professional home services
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {categories.map((service) => (
+              <ServiceCard key={service.id} service={service} />
+            ))}
+          </div>
+          
+          <div className="mt-12 text-center">
+            <Link 
+              to="/services" 
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
+            >
+              View All Services
+              <ArrowRight className="ml-2 -mr-1 h-5 w-5" />
+            </Link>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default Home;
