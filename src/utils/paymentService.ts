@@ -20,13 +20,25 @@ export interface PaymentResponse {
 class PaymentService {
   private readonly API_KEY = 'b836a677-d4d8-4a7f-b5e8-5e749ef119ae';
   private readonly BASE_URL = 'https://api.upigateway.com/v1'; // Replace with actual UPI Gateway API URL
+  private readonly NETWORK_TIMEOUT_MS = 5000; // Fail fast to avoid UI hanging
+
+  private async fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit, timeoutMs: number = this.NETWORK_TIMEOUT_MS): Promise<Response> {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(input, { ...(init || {}), signal: controller.signal });
+      return response;
+    } finally {
+      clearTimeout(id);
+    }
+  }
 
   async initiatePayment(paymentData: PaymentRequest): Promise<PaymentResponse> {
     console.log('🔄 Initiating payment for:', paymentData);
 
     // Try API call first (in case the API becomes available)
     try {
-      const response = await fetch(`${this.BASE_URL}/payments/initiate`, {
+      const response = await this.fetchWithTimeout(`${this.BASE_URL}/payments/initiate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,7 +59,7 @@ class PaymentService {
           redirect_url: `${window.location.origin}/payment/success`,
           webhook_url: `${window.location.origin}/api/payment/webhook`
         })
-      });
+      }, this.NETWORK_TIMEOUT_MS);
 
       if (response.ok) {
         const result = await response.json();
@@ -82,13 +94,13 @@ class PaymentService {
 
     // Option 1: Check with UPI Gateway API (if available)
     try {
-      const response = await fetch(`${this.BASE_URL}/payments/verify/${transactionId}`, {
+      const response = await this.fetchWithTimeout(`${this.BASE_URL}/payments/verify/${transactionId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${this.API_KEY}`,
           'X-API-Key': this.API_KEY
         }
-      });
+      }, this.NETWORK_TIMEOUT_MS);
 
       if (response.ok) {
         const result = await response.json();
