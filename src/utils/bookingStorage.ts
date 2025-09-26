@@ -156,15 +156,26 @@ export const cloudUpdateBookingStatus = async (bookingId: string, status: Bookin
 
 // Firestore implementations (primary when Supabase not configured)
 export const fsSaveBooking = async (booking: Omit<Booking, 'id' | 'created_at'>): Promise<Booking> => {
-  try {
-    const ref = await addDoc(collection(db, 'bookings'), {
-      ...booking,
-      created_at: new Date().toISOString(),
-    })
-    return { id: ref.id, created_at: new Date().toISOString(), ...booking }
-  } catch {
-    return saveBooking(booking)
-  }
+  const cloudAttempt = (async () => {
+    try {
+      const ref = await addDoc(collection(db, 'bookings'), {
+        ...booking,
+        created_at: new Date().toISOString(),
+      })
+      return { id: ref.id, created_at: new Date().toISOString(), ...booking }
+    } catch {
+      return saveBooking(booking)
+    }
+  })()
+
+  // Fail fast if Firestore is slow/unreachable to avoid UI freeze
+  const timeoutMs = 5000
+  const timeoutFallback = new Promise<Booking>((resolve) => {
+    setTimeout(() => resolve(saveBooking(booking)), timeoutMs)
+  })
+
+  // Whichever resolves first will be used; the other result is ignored
+  return Promise.race([cloudAttempt, timeoutFallback])
 }
 
 export const fsGetBookings = async (): Promise<Booking[]> => {
